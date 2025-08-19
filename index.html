@@ -17,6 +17,74 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .progress-bar {
+            background-color: var(--primary-color);
+        }
+        .form-section {
+            display: none;
+        }
+        .form-section.active {
+            display: block;
+        }
+        .form-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .confirmation-icon {
+            font-size: 5rem;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: var(--primary-light);
+            background-color: rgba(106, 27, 154, 0.05);
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+        }
+        .file-name {
+            margin-top: 1rem;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+        .finance-type-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+        .finance-type-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        .finance-type-card.selected {
+            border: 2px solid var(--primary-color) !important;
+            background-color: rgba(106, 27, 154, 0.05);
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        .card-title {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .card {
+            border: 1px solid rgba(0,0,0,0.125);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -32,10 +100,10 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="index.html" aria-current="page">ACCUEIL</a>
+                        <a class="nav-link" href="index.html">ACCUEIL</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="demander-un-financement.html">Demander un Financement</a>
+                        <a class="nav-link active" href="demander-un-financement.html" aria-current="page">Demander un Financement</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="contact.html">Contact</a>
