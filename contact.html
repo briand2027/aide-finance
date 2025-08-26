@@ -18,6 +18,23 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <style>
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
         .contact-hero {
             background: linear-gradient(rgba(26, 26, 26, 0.8), rgba(26, 26, 26, 0.8)), url('assets/contact-bg.jpg') center/cover no-repeat;
             padding: 120px 0 80px;
@@ -132,7 +149,7 @@
                         <a class="nav-link" href="index.html">ACCUEIL</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="demander-un-financement.html">Demander un Financement</a>
+                        <a class="nav-link" href="demander-un-financement.php">Demander un Financement</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="contact.html" aria-current="page">Contact</a>
@@ -205,27 +222,27 @@
                 <div class="col-lg-7" data-aos="fade-right">
                     <div class="contact-form">
                         <h3 class="mb-4">Envoyez-nous un message</h3>
-                        <form id="contactForm">
+                        <form id="contactForm" method="post" action="contact.php">
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="prenom" class="form-label">Prénom *</label>
-                                    <input type="text" class="form-control" id="prenom" required>
+                                    <input type="text" class="form-control" id="prenom" name="prenom" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="nom" class="form-label">Nom *</label>
-                                    <input type="text" class="form-control" id="nom" required>
+                                    <input type="text" class="form-control" id="nom" name="nom" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="email" class="form-label">Email *</label>
-                                    <input type="email" class="form-control" id="email" required>
+                                    <input type="email" class="form-control" id="email" name="email" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="telephone" class="form-label">Téléphone</label>
-                                    <input type="tel" class="form-control" id="telephone">
+                                    <input type="tel" class="form-control" id="telephone" name="telephone">
                                 </div>
                                 <div class="col-12">
                                     <label for="sujet" class="form-label">Sujet *</label>
-                                    <select class="form-select" id="sujet" required>
+                                    <select class="form-select" id="sujet" name="sujet" required>
                                         <option value="" selected disabled>Sélectionnez un sujet</option>
                                         <option value="financement">Demande de financement</option>
                                         <option value="information">Demande d'information</option>
@@ -236,19 +253,24 @@
                                 </div>
                                 <div class="col-12">
                                     <label for="message" class="form-label">Message *</label>
-                                    <textarea class="form-control" id="message" rows="5" required></textarea>
+                                    <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="consentement" required>
+                                        <input class="form-check-input" type="checkbox" id="consentement" name="consentement" required>
                                         <label class="form-check-label" for="consentement">
                                             J'accepte que mes informations soient utilisées pour me recontacter *
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-12 mt-4">
-                                    <button type="submit" class="btn btn-contact w-100">Envoyer le message</button>
+                                    <button type="submit"  name="submit" class="btn btn-contact w-100" id="submitBtn">
+                                        <span class="spinner-border spinner-border-sm me-2 d-none" id="spinner" role="status" aria-hidden="true"></span>
+                                        Envoyer le message
+                                    </button>
                                 </div>
+                                <!-- AJOUTEZ CETTE LIGNE -->
+                                <!-- <div id="formMessage" class="mt-3"></div> -->
                             </div>
                         </form>
                     </div>
@@ -482,26 +504,8 @@
         });
 
         // Form submission handling
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Form submission handling avec AJAX
             
-            // Basic validation
-            const prenom = document.getElementById('prenom').value;
-            const nom = document.getElementById('nom').value;
-            const email = document.getElementById('email').value;
-            const sujet = document.getElementById('sujet').value;
-            const message = document.getElementById('message').value;
-            
-            if (!prenom || !nom || !email || !sujet || !message) {
-                alert('Veuillez remplir tous les champs obligatoires.');
-                return;
-            }
-            
-            // Here you would typically send the form data to your server
-            // For now, we'll just show a success message
-            alert('Votre message a été envoyé avec succès ! Nous vous recontacterons dans les plus brefs délais.');
-            this.reset();
-        });
     </script>
 </body>
 </html>

@@ -1,3 +1,161 @@
+<?php
+// Activation de l'affichage des erreurs pour le débogage
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Inclusion du fichier de connexion à la base de données
+include("connexion.php");
+
+// Initialisation des variables
+$error_message = '';
+$success_message = '';
+$form_submitted = false;
+
+// Traitement du formulaire s'il a été soumis
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    try {
+        // Récupération et sécurisation des données
+        $type_financement = htmlspecialchars(trim($_POST['type_financement']));
+        $civilite = htmlspecialchars(trim($_POST['civilite']));
+        $nom_complet = htmlspecialchars(trim($_POST['nom_complet']));
+        $email = htmlspecialchars(trim($_POST['email']));
+        $telephone = htmlspecialchars(trim($_POST['telephone']));
+        $adresse = htmlspecialchars(trim($_POST['adresse']));
+        $code_postal = htmlspecialchars(trim($_POST['code_postal']));
+        $ville = htmlspecialchars(trim($_POST['ville']));
+        $titre_projet = htmlspecialchars(trim($_POST['titre_projet']));
+        $description_projet = htmlspecialchars(trim($_POST['description_projet']));
+        $montant_demande = floatval($_POST['montant_demande']);
+        $duree_projet = htmlspecialchars(trim($_POST['duree_projet']));
+
+        // Validation des champs obligatoires
+        $required_fields = [
+            'type_financement' => $type_financement,
+            'civilite' => $civilite,
+            'nom_complet' => $nom_complet,
+            'email' => $email,
+            'telephone' => $telephone,
+            'adresse' => $adresse,
+            'code_postal' => $code_postal,
+            'ville' => $ville,
+            'titre_projet' => $titre_projet,
+            'description_projet' => $description_projet,
+            'montant_demande' => $montant_demande,
+            'duree_projet' => $duree_projet
+        ];
+
+        $missing_fields = [];
+        foreach ($required_fields as $field => $value) {
+            if (empty($value)) {
+                $missing_fields[] = $field;
+            }
+        }
+
+        if (!empty($missing_fields)) {
+            throw new Exception('Tous les champs obligatoires doivent être remplis.');
+        }
+
+        // Validation de l'email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('L\'adresse email n\'est pas valide.');
+        }
+
+        // Gestion de l'upload des fichiers
+        $cv_filename = null;
+        $projet_filename = null;
+        
+        // Dossier de destination pour les fichiers
+        $upload_dir = "uploads/demandes/";
+        if (!file_exists($upload_dir)) {
+            if (!mkdir($upload_dir, 0777, true)) {
+                throw new Exception('Impossible de créer le dossier de destination pour les fichiers.');
+            }
+        }
+        
+        // Traitement du CV
+        if (!empty($_FILES['cv_file']['name'])) {
+            $cv_file_ext = strtolower(pathinfo($_FILES['cv_file']['name'], PATHINFO_EXTENSION));
+            $cv_filename = "cv_" . time() . "_" . uniqid() . "." . $cv_file_ext;
+            $cv_target = $upload_dir . $cv_filename;
+            
+            // Vérification du type de fichier
+            $allowed_extensions = ['pdf', 'doc', 'docx'];
+            if (!in_array($cv_file_ext, $allowed_extensions)) {
+                throw new Exception('Le format du CV n\'est pas autorisé. Formats acceptés: PDF, DOC, DOCX.');
+            }
+            
+            // Vérification de la taille (5MB max)
+            if ($_FILES['cv_file']['size'] > 5 * 1024 * 1024) {
+                throw new Exception('Le fichier CV est trop volumineux. Taille maximale: 5MB.');
+            }
+            
+            // Déplacement du fichier
+            if (!move_uploaded_file($_FILES['cv_file']['tmp_name'], $cv_target)) {
+                throw new Exception('Erreur lors de l\'upload du CV.');
+            }
+        }
+        
+        // Traitement du fichier de projet
+        if (!empty($_FILES['projet_file']['name'])) {
+            $projet_file_ext = strtolower(pathinfo($_FILES['projet_file']['name'], PATHINFO_EXTENSION));
+            $projet_filename = "projet_" . time() . "_" . uniqid() . "." . $projet_file_ext;
+            $projet_target = $upload_dir . $projet_filename;
+            
+            // Vérification du type de fichier
+            $allowed_extensions = ['pdf', 'doc', 'docx'];
+            if (!in_array($projet_file_ext, $allowed_extensions)) {
+                throw new Exception('Le format du fichier projet n\'est pas autorisé. Formats acceptés: PDF, DOC, DOCX.');
+            }
+            
+            // Vérification de la taille (10MB max)
+            if ($_FILES['projet_file']['size'] > 10 * 1024 * 1024) {
+                throw new Exception('Le fichier projet est trop volumineux. Taille maximale: 10MB.');
+            }
+            
+            // Déplacement du fichier
+            if (!move_uploaded_file($_FILES['projet_file']['tmp_name'], $projet_target)) {
+                throw new Exception('Erreur lors de l\'upload du fichier projet.');
+            }
+        }
+        
+        // Insertion dans la base de données
+        $stmt = $conn->prepare("INSERT INTO demandes_financement 
+                               (type_financement, civilite, nom_complet, email, telephone, adresse, code_postal, ville, 
+                                titre_projet, description_projet, montant_demande, duree_projet, cv_filename, projet_filename) 
+                               VALUES 
+                               (:type_financement, :civilite, :nom_complet, :email, :telephone, :adresse, :code_postal, :ville, 
+                                :titre_projet, :description_projet, :montant_demande, :duree_projet, :cv_filename, :projet_filename)");
+        
+        $stmt->bindParam(':type_financement', $type_financement);
+        $stmt->bindParam(':civilite', $civilite);
+        $stmt->bindParam(':nom_complet', $nom_complet);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':telephone', $telephone);
+        $stmt->bindParam(':adresse', $adresse);
+        $stmt->bindParam(':code_postal', $code_postal);
+        $stmt->bindParam(':ville', $ville);
+        $stmt->bindParam(':titre_projet', $titre_projet);
+        $stmt->bindParam(':description_projet', $description_projet);
+        $stmt->bindParam(':montant_demande', $montant_demande);
+        $stmt->bindParam(':duree_projet', $duree_projet);
+        $stmt->bindParam(':cv_filename', $cv_filename);
+        $stmt->bindParam(':projet_filename', $projet_filename);
+        
+        if (!$stmt->execute()) {
+            throw new Exception('Erreur lors de l\'enregistrement en base de données.');
+        }
+        
+        // Succès - on prépare le message et on nettoie les données du formulaire
+        $success_message = 'Votre demande a été enregistrée avec succès!';
+        $form_submitted = true;
+        
+    } catch (Exception $e) {
+        $error_message = $e->getMessage();
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,9 +173,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* Votre CSS existant ici */
         .progress-bar {
             background-color: var(--primary-color);
         }
@@ -84,6 +242,21 @@
             border-radius: 12px;
             overflow: hidden;
         }
+        .alert-message {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1050;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
     </style>
 </head>
 <body>
@@ -103,10 +276,10 @@
                         <a class="nav-link" href="index.html">ACCUEIL</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="demander-un-financement.html" aria-current="page">Demander un Financement</a>
+                        <a class="nav-link" href="demander-un-financement.php">Demander un Financement</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="contact.html">Contact</a>
+                        <a class="nav-link active" href="contact.html" aria-current="page">Contact</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="a-propos.html">À PROPOS</a>
@@ -118,6 +291,25 @@
             </div>
         </div>
     </nav>
+
+    <!-- Affichage des messages d'alerte -->
+    <?php if (isset($error_message)): ?>
+    <div class="alert-message">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> <?php echo $error_message; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (isset($success_message)): ?>
+    <div class="alert-message">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> <?php echo $success_message; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Hero Section -->
     <section class="demande-section pt-6" style="padding-top:120px;">
@@ -143,8 +335,8 @@
                         </div>
                     </div>
 
-                    <!-- Form Steps -->
-                    <div class="stat-card p-4 p-md-5">
+                    <!-- Formulaire -->
+                    <form action="demander-un-financement.php" method="POST" enctype="multipart/form-data" id="financementForm">
                         <!-- Step 1: Type de financement -->
                         <div class="form-section active" id="step1">
                             <h3 class="mb-4">Type de financement</h3>
@@ -195,13 +387,15 @@
                                 </div>
                             </div>
 
+                            <input type="hidden" name="type_financement" id="type_financement" value="<?php echo isset($type_financement) ? $type_financement : ''; ?>" required>
+
                             <div class="alert alert-info mt-4">
                                 <i class="fas fa-info-circle me-2"></i> Vous pourrez préciser les détails de votre projet dans les étapes suivantes.
                             </div>
 
                             <div class="form-navigation mt-5">
                                 <div></div> <!-- Empty div for spacing -->
-                                <button class="btn btn-gold" onclick="validateStep1()">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
+                                <button type="button" class="btn btn-gold" onclick="validateStep1()">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
                             </div>
                         </div>
 
@@ -213,41 +407,41 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="civilite" class="form-label">Civilité *</label>
-                                    <select class="form-select" id="civilite" required>
+                                    <select class="form-select" id="civilite" name="civilite" required>
                                         <option value="" selected disabled>Sélectionnez</option>
-                                        <option value="monsieur">Monsieur</option>
-                                        <option value="madame">Madame</option>
+                                        <option value="monsieur" <?php echo (isset($civilite) && $civilite == 'monsieur') ? 'selected' : ''; ?>>Monsieur</option>
+                                        <option value="madame" <?php echo (isset($civilite) && $civilite == 'madame') ? 'selected' : ''; ?>>Madame</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="nom" class="form-label">Nom complet *</label>
-                                    <input type="text" class="form-control" id="nom" required>
+                                    <label for="nom_complet" class="form-label">Nom complet *</label>
+                                    <input type="text" class="form-control" id="nom_complet" name="nom_complet" value="<?php echo isset($nom_complet) ? $nom_complet : ''; ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="email" class="form-label">Adresse email *</label>
-                                    <input type="email" class="form-control" id="email" required>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo isset($email) ? $email : ''; ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="telephone" class="form-label">Téléphone *</label>
-                                    <input type="tel" class="form-control" id="telephone" required>
+                                    <input type="tel" class="form-control" id="telephone" name="telephone" value="<?php echo isset($telephone) ? $telephone : ''; ?>" required>
                                 </div>
                                 <div class="col-12">
                                     <label for="adresse" class="form-label">Adresse *</label>
-                                    <input type="text" class="form-control" id="adresse" required>
+                                    <input type="text" class="form-control" id="adresse" name="adresse" value="<?php echo isset($adresse) ? $adresse : ''; ?>" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="codePostal" class="form-label">Code postal *</label>
-                                    <input type="text" class="form-control" id="codePostal" required>
+                                    <label for="code_postal" class="form-label">Code postal *</label>
+                                    <input type="text" class="form-control" id="code_postal" name="code_postal" value="<?php echo isset($code_postal) ? $code_postal : ''; ?>" required>
                                 </div>
                                 <div class="col-md-8">
                                     <label for="ville" class="form-label">Ville *</label>
-                                    <input type="text" class="form-control" id="ville" required>
+                                    <input type="text" class="form-control" id="ville" name="ville" value="<?php echo isset($ville) ? $ville : ''; ?>" required>
                                 </div>
                             </div>
 
                             <div class="form-navigation mt-5">
-                                <button class="btn btn-outline-secondary" onclick="prevStep(2)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
-                                <button class="btn btn-gold" onclick="nextStep(2)">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
+                                <button type="button" class="btn btn-gold" onclick="nextStep(2)">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
                             </div>
                         </div>
 
@@ -257,34 +451,34 @@
                             <p class="mb-4">Décrivez-nous votre projet en détail</p>
                             
                             <div class="mb-3">
-                                <label for="titreProjet" class="form-label">Titre du projet *</label>
-                                <input type="text" class="form-control" id="titreProjet" required>
+                                <label for="titre_projet" class="form-label">Titre du projet *</label>
+                                <input type="text" class="form-control" id="titre_projet" name="titre_projet" value="<?php echo isset($titre_projet) ? $titre_projet : ''; ?>" required>
                             </div>
                             <div class="mb-3">
-                                <label for="descriptionProjet" class="form-label">Description détaillée *</label>
-                                <textarea class="form-control" id="descriptionProjet" rows="5" required></textarea>
+                                <label for="description_projet" class="form-label">Description détaillée *</label>
+                                <textarea class="form-control" id="description_projet" name="description_projet" rows="5" required><?php echo isset($description_projet) ? $description_projet : ''; ?></textarea>
                                 <div class="info-text">Décrivez votre projet, ses objectifs, son avancement et ses besoins spécifiques</div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label for="montantDemande" class="form-label">Montant demandé (€) *</label>
-                                    <input type="number" class="form-control" id="montantDemande" min="1000" max="900000" required>
+                                    <label for="montant_demande" class="form-label">Montant demandé (€) *</label>
+                                    <input type="number" class="form-control" id="montant_demande" name="montant_demande" min="1000" max="900000" value="<?php echo isset($montant_demande) ? $montant_demande : ''; ?>" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="dureeProjet" class="form-label">Durée estimée du projet *</label>
-                                    <select class="form-select" id="dureeProjet" required>
+                                    <label for="duree_projet" class="form-label">Durée estimée du projet *</label>
+                                    <select class="form-select" id="duree_projet" name="duree_projet" required>
                                         <option value="" selected disabled>Sélectionnez</option>
-                                        <option value="<3">Moins de 3 mois</option>
-                                        <option value="3-6">3 à 6 mois</option>
-                                        <option value="6-12">6 à 12 mois</option>
-                                        <option value=">12">Plus de 12 mois</option>
+                                        <option value="<3" <?php echo (isset($duree_projet) && $duree_projet == '<3') ? 'selected' : ''; ?>>Moins de 3 mois</option>
+                                        <option value="3-6" <?php echo (isset($duree_projet) && $duree_projet == '3-6') ? 'selected' : ''; ?>>3 à 6 mois</option>
+                                        <option value="6-12" <?php echo (isset($duree_projet) && $duree_projet == '6-12') ? 'selected' : ''; ?>>6 à 12 mois</option>
+                                        <option value=">12" <?php echo (isset($duree_projet) && $duree_projet == '>12') ? 'selected' : ''; ?>>Plus de 12 mois</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-navigation mt-5">
-                                <button class="btn btn-outline-secondary" onclick="prevStep(3)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
-                                <button class="btn btn-gold" onclick="nextStep(3)">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(3)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
+                                <button type="button" class="btn btn-gold" onclick="nextStep(3)">Suivant <i class="fas fa-arrow-right ms-2"></i></button>
                             </div>
                         </div>
 
@@ -303,7 +497,7 @@
                                     <p class="text-muted small">Formats acceptés: PDF, DOC, DOCX (max. 5MB)</p>
                                     <div class="file-name" id="cvFileName"></div>
                                 </div>
-                                <input type="file" id="cvInput" class="d-none" accept=".pdf,.doc,.docx">
+                                <input type="file" id="cvInput" name="cv_file" class="d-none" accept=".pdf,.doc,.docx">
                             </div>
 
                             <div class="mb-4">
@@ -316,19 +510,19 @@
                                     <p class="text-muted small">Formats acceptés: PDF, DOC, DOCX (max. 10MB)</p>
                                     <div class="file-name" id="projetFileName"></div>
                                 </div>
-                                <input type="file" id="projetInput" class="d-none" accept=".pdf,.doc,.docx">
+                                <input type="file" id="projetInput" name="projet_file" class="d-none" accept=".pdf,.doc,.docx">
                             </div>
 
                             <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" id="conditions" required>
+                                <input class="form-check-input" type="checkbox" id="conditions" name="conditions" required>
                                 <label class="form-check-label" for="conditions">
                                     J'accepte les <a href="#" class="text-primary">conditions générales</a> et la <a href="#" class="text-primary">politique de confidentialité</a> *
                                 </label>
                             </div>
 
                             <div class="form-navigation mt-5">
-                                <button class="btn btn-outline-secondary" onclick="prevStep(4)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
-                                <button class="btn btn-gold" onclick="nextStep(4)">Soumettre la demande <i class="fas fa-check ms-2"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(4)"><i class="fas fa-arrow-left me-2"></i> Retour</button>
+                                <button type="submit" class="btn btn-gold">Soumettre la demande <i class="fas fa-check ms-2"></i></button>
                             </div>
                         </div>
 
@@ -342,12 +536,12 @@
                                 <p class="mb-4">Nous avons bien reçu votre demande de financement et allons l'étudier dans les plus brefs délais.</p>
                                 <p class="mb-4">Un conseiller vous contactera sous <strong>72 heures maximum</strong> pour discuter de votre projet.</p>
                                 <div class="d-flex justify-content-center gap-3 flex-wrap">
-                                    <a href="index.html" class="btn btn-outline-primary">Retour à l'accueil</a>
+                                    <a href="index.php" class="btn btn-outline-primary">Retour à l'accueil</a>
                                     <a href="#" class="btn btn-gold">Espace client</a>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -359,7 +553,7 @@
             <div class="row g-4">
                 <!-- Logo + description -->
                 <div class="col-md-4">
-                    <a href="index.html" class="navbar-brand text-white">
+                    <a href="index.php" class="navbar-brand text-white">
                         <img src="assets/logo-aide-finance.png" alt="Aide Finance" height="40">
                         <span class="ms-1">Aide Finance</span>
                     </a>
@@ -369,10 +563,10 @@
                 <div class="col-md-4">
                     <h5>Liens utiles</h5>
                     <ul class="list-unstyled mt-2">
-                        <li><a href="index.html" class="text-white">Accueil</a></li>
-                        <li><a href="demander-un-financement.html" class="text-white">Demander un financement</a></li>
-                        <li><a href="a-propos.html" class="text-white">À propos</a></li>
-                        <li><a href="contact.html" class="text-white">Contact</a></li>
+                        <li><a href="index.php" class="text-white">Accueil</a></li>
+                        <li><a href="demander-un-financement.php" class="text-white">Demander un financement</a></li>
+                        <li><a href="a-propos.php" class="text-white">À propos</a></li>
+                        <li><a href="contact.php" class="text-white">Contact</a></li>
                     </ul>
                 </div>
                 <!-- Réseaux sociaux -->
@@ -390,6 +584,7 @@
             </div>
         </div>
     </footer>
+
     <!-- Modal pour la sélection du type de financement -->
     <div class="modal fade" id="financementModal" tabindex="-1" aria-labelledby="financementModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -410,6 +605,7 @@
             </div>
         </div>
     </div>
+
     <!-- JS Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -445,6 +641,7 @@
                 
                 // Store the selected finance type
                 financeType = this.getAttribute('data-type');
+                document.getElementById('type_financement').value = financeType;
             });
         });
 
@@ -492,24 +689,11 @@
                 });
                 if (!valid) return;
             }
-            
-            if (step === 4) {
-                if (!document.getElementById('conditions').checked) {
-                    alert('Veuillez accepter les conditions générales');
-                    return;
-                }
-            }
 
             document.getElementById(`step${step}`).classList.remove('active');
             currentStep = step + 1;
             document.getElementById(`step${currentStep}`).classList.add('active');
             updateProgressBar();
-
-            // If last step, show confirmation
-            if (currentStep === totalSteps) {
-                // Here you would typically submit the form data to your server
-                console.log('Form submitted with data:', collectFormData());
-            }
         }
 
         function prevStep(step) {
@@ -517,24 +701,6 @@
             currentStep = step - 1;
             document.getElementById(`step${currentStep}`).classList.add('active');
             updateProgressBar();
-        }
-
-        function collectFormData() {
-            return {
-                type: financeType,
-                civilite: document.getElementById('civilite').value,
-                nom: document.getElementById('nom').value,
-                email: document.getElementById('email').value,
-                telephone: document.getElementById('telephone').value,
-                adresse: document.getElementById('adresse').value,
-                codePostal: document.getElementById('codePostal').value,
-                ville: document.getElementById('ville').value,
-                titreProjet: document.getElementById('titreProjet').value,
-                descriptionProjet: document.getElementById('descriptionProjet').value,
-                montantDemande: document.getElementById('montantDemande').value,
-                dureeProjet: document.getElementById('dureeProjet').value,
-                conditions: document.getElementById('conditions').checked
-            };
         }
 
         // File upload handling
@@ -598,6 +764,16 @@
                 handleDrop(e, id === 'cvUpload' ? 'cvInput' : 'projetInput', id === 'cvUpload' ? 'cvFileName' : 'projetFileName');
             });
         });
+
+        // If form was submitted successfully, show confirmation
+        <?php if (isset($form_submitted) && $form_submitted): ?>
+        document.querySelectorAll('.form-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        document.getElementById('step5').classList.add('active');
+        currentStep = 5;
+        updateProgressBar();
+        <?php endif; ?>
     </script>
 </body>
 </html>

@@ -16,6 +16,7 @@ body {
   font-family: 'Poppins', sans-serif;
   color: #333;
   background-color: var(--light);
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -51,7 +52,8 @@ p {
 .navbar {
   background: var(--dark);
   transition: all 0.3s ease;
-  padding: 1rem 0;
+  /* padding: 1rem 0;*/padding: 0.75rem 0; 
+ 
 }
 
 .navbar.scrolled {
