@@ -285,9 +285,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <a class="nav-link" href="a-propos.html">À PROPOS</a>
                     </li>
                 </ul>
-                <div class="ms-lg-3 mt-3 mt-lg-0">
+                <!-- <div class="ms-lg-3 mt-3 mt-lg-0">
                     <a href="espace-client.html" class="btn btn-sm btn-gold">Espace client <i class="fas fa-lock ms-2" aria-hidden="true"></i></a>
-                </div>
+                </div> -->
             </div>
         </div>
     </nav>
