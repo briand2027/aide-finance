@@ -563,10 +563,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="col-md-4">
                     <h5>Liens utiles</h5>
                     <ul class="list-unstyled mt-2">
-                        <li><a href="index.php" class="text-white">Accueil</a></li>
+                        <li><a href="index.html" class="text-white">Accueil</a></li>
                         <li><a href="demander-un-financement.php" class="text-white">Demander un financement</a></li>
-                        <li><a href="a-propos.php" class="text-white">À propos</a></li>
-                        <li><a href="contact.php" class="text-white">Contact</a></li>
+                        <li><a href="a-propos.html" class="text-white">À propos</a></li>
+                        <li><a href="contact.html" class="text-white">Contact</a></li>
                     </ul>
                 </div>
                 <!-- Réseaux sociaux -->
